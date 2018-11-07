@@ -1,0 +1,41 @@
+Allowing WCCC Remote Access with a Service Account
+
+Step 1: Create a service account – ‘qradarsiem’
+Step 2: Create a group ‘SIEM Log Readers’
+Step 3: Add ‘qradarsiem’ to group ‘SIEM Log Readers’
+Step 4: Find SID of Group “SIEM Log Readers”
+Step 5: Create a GPO named “SIEM” with the following settings:
+
+Computer Configuration/Policies/Windows Settings/Security Settings/Local Policies/User Rights Assignment/Manage Auditing and security log – Assign “Domain\SIEM Log Readers”
+
+Explanation: Allows anyone in the user group “SIEM Log Readers” to have the token privilege SeAuditPrivilege – Manage Auditing and security log
+
+Computer Configuration/Policies/Windows Settings/Security Settings/Local Policies/Security Options/DCOM: * - Assign “Domain\SIEM Log Readers”
+
+Explanation: Needed when connecting and retrieving remote logs over the network. DCOM: Uses the SDDL (Security Descriptor) to enable access to DCOM objects (Event Viewer)
+
+Computer Configuration/Policies/Windows Settings/Security Settings/Registry
+	MACHINE\SYSTEM\CurrentControlSet\Services\EventLog – Assign “Domain\SIEM Log Readers” Full Access and propagate to all sub keys
+
+Explanation: This registry, by default, only has NTFS permissions for admin users. Editing the registry allows us to specify “Full Access” for user group “SIEM Log Readers”
+
+	MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT - Assign “Domain\SIEM Log Readers” Full Access and propagate to all sub keys
+Explanation: Explanation: This registry, by default, only has NTFS permissions for admin users. Editing the registry allows us to specify “Full Access” for user group “SIEM Log Readers”
+
+Computer Configuration/Policies/Windows Settings/Security Settings/Windows Firewall with Advanced Security/Inbound Rules/Default/WMI Inbound
+
+Explanation: When connecting remotely to gather logs, queries to the WMI database to retrieve logs needs a firewall rule on the workstation to allow Port 135 through
+
+Computer Configuration/Registry
+Create SYSTEM\CurrentControlSet\Services\EventLog\System
+Value Name: CustomSD
+Value Type: REG_SZ
+Value Data: O:BAG:SYD:(A;;0xf0005;;;SY)(A;;0x5;;;BA)(A;;0x1;;;S-1-5-32-573)(A;;0x1;;;S-1-5-20)(A;;0x7;;;S-1-5-21-962722181-1340073562-50368464-2728)
+
+Computer Configuration/Regstry
+Create SYSTEM\CurrentControlSet\Services\EventLog\Application
+Value Name: CustomSD
+Value Type: REG_SZ
+Value Data: O:BAG:SYD:(A;;0xf0005;;;SY)(A;;0x5;;;BA)(A;;0x1;;;S-1-5-32-573)(A;;0x1;;;S-1-5-20)(A;;0x7;;;S-1-5-21-962722181-1340073562-50368464-2728)
+
+Explanation: Forces a registry key with “CustomSD” inside of the SYSTEM\CurrentControlSet\Services\EventLog\System allowing us to specify a custom SDDL to allow access to the event log – the highlighted SID is the SID of the group “SEIM Log Readers” that we obtained in Step 4.
